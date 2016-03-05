@@ -3,7 +3,7 @@ package utilities;
 import java.util.logging.Logger;
 
 /**
- * Created by nishanthsivakumar on 3/5/16.
+ * Created by Nishanth Sivakumar and Sriram Balasubramanian on 3/5/16.
  */
 public class StringUtil {
 
