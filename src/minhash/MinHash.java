@@ -134,7 +134,7 @@ public class MinHash {
     private void generatePermutations(){
         final String METHOD_NAME = "generatePermutations";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
-
+        //TODO Randommize this generation
         int a = 1, b=3;
         for(int i=0;i< this.numPermutations;i++){
             permutations[i] = new Permutation(a,b);
