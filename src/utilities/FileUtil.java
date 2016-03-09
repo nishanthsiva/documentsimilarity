@@ -54,7 +54,7 @@ public class FileUtil {
                 for(String token: tokens){
                     String[] processedWords = StringUtil.processWord(token);
                     for(String term: processedWords){
-                        if(term.length() > 3){
+                        if(term.length() >= 3 && !term.toLowerCase().equals("the")){
                             termSet.add(term);
                         }
                     }

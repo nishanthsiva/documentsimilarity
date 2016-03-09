@@ -3,7 +3,11 @@ package minhash;
 import objects.Permutation;
 import utilities.FileUtil;
 
+import java.lang.reflect.Method;
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
@@ -47,7 +51,7 @@ public class MinHash {
         this.termList = new ArrayList<>();
         this.permutations = new Permutation[numPermutations];
         this.minHashMatrix = new int[numPermutations][filenames.length];
-        computeMinHashSig();
+        createTermSet();
     }
 
     public String[] allDocs(){
@@ -63,24 +67,25 @@ public class MinHash {
         for(int i=0;i<filepaths.length;i++){
             String[] tokens = filepaths[i].split("/");
             filenames[i] = tokens[tokens.length-1];
+            LOGGER.log(Level.FINE, filenames[i]);
         }
 
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
         return filenames;
     }
 
-    private void computeMinHashSig(){
+    public void computeMinHashSig(){
         final String METHOD_NAME = "computeMinHashSig";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
-        createTermSet();
+        LOGGER.log(Level.INFO, this.termList.size()+"");
         createTermDocumentMatrix();
         generatePermutations();
         //compute minhashsignature
         for(int i=0;i<this.numPermutations; i++){
             Permutation currentPerm = permutations[i];
-            for(int j=0;i<filenames.length;j++){
-               minHashMatrix[i][j] = getMinimumTerm(getTermDocumentColumn(j),currentPerm).hashCode();
+            for(int j=0;j<this.filenames.length;j++){
+                minHashMatrix[i][j] = getMinimumTerm(getTermDocumentColumn(j),currentPerm).hashCode();
             }
         }
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
@@ -123,6 +128,7 @@ public class MinHash {
         final String METHOD_NAME = "getTermDocumentColumn";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
+        LOGGER.log(Level.FINER,"Col Num - "+columnNumber);
         int[] termDocColumn = new int[this.termList.size()];
         for(int i=0;i<termList.size();i++){
             termDocColumn[i] = termDocumentMatrix[i][columnNumber];
@@ -131,15 +137,41 @@ public class MinHash {
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
         return termDocColumn;
     }
+
+    private int getNextPrime(int startNumber){
+        final String METHOD_NAME ="getNextPrime";
+        LOGGER.entering(CLASS_NAME, METHOD_NAME);
+
+        SecureRandom random = new SecureRandom();
+        BigInteger nextPrime = new BigInteger(this.termList.size()+"");
+        nextPrime = nextPrime.nextProbablePrime();
+
+        LOGGER.exiting(CLASS_NAME, METHOD_NAME);
+        return nextPrime.intValue();
+
+
+    }
     private void generatePermutations(){
         final String METHOD_NAME = "generatePermutations";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
-        //TODO Randommize this generation
-        int a = 1, b=3;
-        for(int i=0;i< this.numPermutations;i++){
-            permutations[i] = new Permutation(a,b);
-            a +=1;
-            b+=b;
+        //TODO Verify this randomization
+        int prime = getNextPrime(termList.size());
+        LOGGER.log(Level.INFO,"Prime found at "+prime);
+        Set<Integer> aSet = new TreeSet<>();
+        Set<Integer> bSet = new TreeSet<>();
+        Random random = new Random();
+        int a = random.nextInt(prime-1), b = random.nextInt(prime-1);
+        int i=0;
+        while(i< this.numPermutations){
+            if(!aSet.contains(new Integer(a)) || !bSet.contains(new Integer(b))){
+                LOGGER.log(Level.FINE,"Found "+a+" and "+b+" for perm "+(i+1));
+                permutations[i] = new Permutation(a,b);
+                i++;
+                aSet.add(new Integer(a));
+                bSet.add(new Integer(b));
+            }
+            a = random.nextInt(prime-1);
+            b = random.nextInt(prime-1);
         }
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
     }
@@ -220,12 +252,13 @@ public class MinHash {
         Set<String> file1Terms = this.termMap.get(file1);
         Set<String> file2Terms = this.termMap.get(file2);
 
-        Set<String> termSet = getTermIntersection(file1Terms, file2Terms);
+        Set<String> termIntersection = getTermIntersection(file1Terms, file2Terms);
+
 
         Set<String> unionSet = new TreeSet<>();
         unionSet.addAll(file1Terms);
         unionSet.addAll(file2Terms);
-        jaccardSim = termSet.size()/(unionSet.size());
+        jaccardSim = (double)termIntersection.size()/(unionSet.size());
 
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
         return jaccardSim;
@@ -238,18 +271,49 @@ public class MinHash {
         int[] file1MinHash = minHashSig(file1);
         int[] file2MinHash = minHashSig(file2);
 
-        int matchingCount = 0;
+        double matchingCount = 0;
 
         for(int i=0;i<file1MinHash.length;i++){
-            for(int j=0;j<file2MinHash.length;j++){
-                if(file1MinHash[i] == file2MinHash[j]){
-                    matchingCount++;
-                }
+            if(file1MinHash[i] == file2MinHash[i]) {
+                matchingCount++;
             }
         }
-
+        LOGGER.log(Level.FINE,"MatchingCount - "+matchingCount);
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
-        return matchingCount/file1MinHash.length;
+        return (matchingCount/file1MinHash.length);
+    }
+
+    public static void main(String args[]){
+        MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/space/",400);
+        double[][] exactJC = new double[4][4];
+        double[][] approxJC = new double[4][4];
+
+        for(int i=0;i<4;i++){
+            for(int j=0;j<4;j++){
+                if(exactJC[i][j] == 0){
+                    exactJC[i][j] = minHash.exactJaccard("space-"+i+".txt","space-"+j+".txt");
+                }
+                if(approxJC[i][j] == 0){
+                    approxJC[i][j] = minHash.approximateJaccard("space-"+i+".txt","space-"+j+".txt");
+                }
+            }
+
+        }
+        for(int i=0;i<4;i++) {
+            for (int j = 0; j <4; j++) {
+                System.out.print(String.format("%.2f",(float)exactJC[i][j])+"\t\t\t");
+            }
+            System.out.println();
+        }
+        System.out.println("\n");
+        for(int i=0;i<4;i++) {
+            for (int j = 0; j <4; j++) {
+                System.out.print(String.format("%.2f",(float)approxJC[i][j])+"\t\t\t");
+            }
+            System.out.println();
+        }
+
+
     }
 
 
