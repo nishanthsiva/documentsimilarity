@@ -19,13 +19,14 @@ public class MinHashSpeed {
         double[][] exactJC = new double[minHash.allDocs().length][minHash.allDocs().length];
         initializeMatrix(exactJC,minHash.allDocs().length,minHash.allDocs().length,-1);
 
+        String[] allDocs = minHash.allDocs();
         for(int i=0;i<minHash.allDocs().length;i++){
             for(int j=0;j<minHash.allDocs().length;j++){
                 if(i==j){
                     exactJC[i][j] = 1;
                 }
                 else if(exactJC[i][j] == -1){
-                    exactJC[i][j] = minHash.exactJaccard("space-"+i+".txt","space-"+j+".txt");
+                    exactJC[i][j] = minHash.exactJaccard(allDocs[i],allDocs[j]);
                     exactJC[j][i] = exactJC[i][j];
                 }
             }
@@ -39,13 +40,14 @@ public class MinHashSpeed {
         initializeMatrix(approxJC,minHash.allDocs().length,minHash.allDocs().length,-1);
         minHash.computeMinHashSig();
 
+        String[] allDocs = minHash.allDocs();
         for(int i=0;i<minHash.allDocs().length;i++){
             for(int j=0;j<minHash.allDocs().length;j++){
                 if(i==j){
                     approxJC[i][j] = 1;
                 }
                 else if(approxJC[i][j] == -1){
-                    approxJC[i][j] = minHash.approximateJaccard("space-"+i+".txt","space-"+j+".txt");
+                    approxJC[i][j] = minHash.approximateJaccard(allDocs[i],allDocs[j]);
                     approxJC[j][i] = approxJC[i][j];
                 }
             }
