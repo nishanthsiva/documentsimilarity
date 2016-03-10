@@ -203,11 +203,12 @@ public class MinHash {
         LOGGER.log(Level.INFO,filenames.length+" files read!");
         Set<String> localTermSet = new TreeSet<>();
         for(String file: filenames){
-            Set<String> fileTerms = FileUtil.getFileTerms(file);
+            Set<String> fileTerms = FileUtil.getFileTerms(this.folder+file);
             this.termMap.put(file, fileTerms);
             localTermSet.addAll(fileTerms);
         }
         this.termList.addAll(localTermSet);
+        LOGGER.log(Level.INFO, this.termList.size()+" terms found!");
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
     }
 
