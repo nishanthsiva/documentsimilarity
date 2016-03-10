@@ -4,7 +4,6 @@ import objects.Permutation;
 import utilities.FileUtil;
 
 import java.io.File;
-import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.*;
@@ -26,6 +25,7 @@ public class MinHash {
     private int[][] minHashMatrix;
     private List<String> termList;
     private HashMap<String, Set<String>> termMap;
+    private int prime;
     private Permutation[] permutations;
 
     public int getNumPermutations() {
@@ -157,23 +157,23 @@ public class MinHash {
         final String METHOD_NAME = "generatePermutations";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
         //TODO Verify this randomization
-        int prime = getNextPrime(termList.size());
-        LOGGER.log(Level.INFO,"Prime found at "+prime);
+        this.prime = getNextPrime(termList.size());
+        LOGGER.log(Level.INFO,"Prime found at "+this.prime);
         Set<Integer> aSet = new TreeSet<>();
         Set<Integer> bSet = new TreeSet<>();
         Random random = new Random();
-        int a = random.nextInt(prime-1), b = random.nextInt(prime-1);
+        int a = random.nextInt(this.prime-1), b = random.nextInt(this.prime-1);
         int i=0;
         while(i< this.numPermutations){
-            if(!aSet.contains(new Integer(a)) || !bSet.contains(new Integer(b))){
+            if(!aSet.contains(a) || !bSet.contains(b)){
                 LOGGER.log(Level.FINE,"Found "+a+" and "+b+" for perm "+(i+1));
                 permutations[i] = new Permutation(a,b);
                 i++;
-                aSet.add(new Integer(a));
-                bSet.add(new Integer(b));
+                aSet.add(a);
+                bSet.add(b);
             }
-            a = random.nextInt(prime-1);
-            b = random.nextInt(prime-1);
+            a = random.nextInt(this.prime-1);
+            b = random.nextInt(this.prime-1);
         }
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
     }
@@ -181,18 +181,17 @@ public class MinHash {
         final String METHOD_NAME = "getMinimumTerm";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
-        List<String> occurringTerms = new ArrayList<>();
-
+        TreeSet<String> occurringTerms = new TreeSet<>();
         for(int i=0;i<termDocument.length;i++){
             if(termDocument[i] == 1){
-                int index = ((p.getA()+i)+p.getB())%this.termList.size();
+                int index = (((p.getA()+i)+p.getB())%this.prime)%this.termList.size();
+
                 occurringTerms.add(this.termList.get(index));
             }
         }
-        Collections.sort(occurringTerms);
 
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
-        return occurringTerms.get(0);
+        return occurringTerms.first();
     }
 
     private void createTermSet(){

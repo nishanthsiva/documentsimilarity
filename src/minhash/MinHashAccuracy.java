@@ -13,17 +13,23 @@ public class MinHashAccuracy {
         int accuracyArray[] = new int[9];
 
         for(int i=0;i<permutations.length;i++){
-            MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/space/", permutations[i]);
+            MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/test/", permutations[i]);
             System.out.println(permutations[i]+" Permutations - ");
+            double exactJC[][] = MinHashSpeed.getExactJCForAllPairs(minHash);
+            double approxJC[][] = MinHashSpeed.getApproxJCForAllPairs(minHash);
             for(int j=0;j<errorMargin.length;j++) {
                 System.out.print(errorMargin[j]+"\t");
-                double exactJC[][] = MinHashSpeed.getExactJCForAllPairs(minHash);
-                double approxJC[][] = MinHashSpeed.getApproxJCForAllPairs(minHash);
-                for (int x = 0; x < minHash.getNumPermutations(); x++) {
+                for (int x = 0; x < minHash.allDocs().length; x++) {
                     for (int y = 0; y < minHash.allDocs().length; y++) {
-                        if((exactJC[x][y] - approxJC[x][y]) > errorMargin[j]){
-                            accuracyArray[resultIndex] += 1;
+                        if(!(x==y)){
+                            //System.out.println("Exact Jaccard for "+(x+1)+" and "+(y+1)+" - "+exactJC[x][y]);
+                            //System.out.println("Approximate Jaccard for "+(x+1)+" and "+(y+1)+" - "+approxJC[x][y]);
+                            //System.out.println();
+                            if((exactJC[x][y] - approxJC[x][y]) > errorMargin[j]){
+                                accuracyArray[resultIndex] += 1;
+                            }
                         }
+
                     }
                 }
                 System.out.println(accuracyArray[resultIndex]);
