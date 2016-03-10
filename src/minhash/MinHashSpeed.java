@@ -1,6 +1,5 @@
 package minhash;
 
-import com.javafx.tools.doclets.formats.html.SourceToHTMLConverter;
 
 /**
  * Created by Nishanth Sivakumar and Sriram Balasubramanian on 3/8/16.
@@ -57,7 +56,7 @@ public class MinHashSpeed {
     }
 
     public static void main(String args[]){
-        MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/space/",400);
+        MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/test/",400);
 
         double[][] exactJC = new double[minHash.allDocs().length][minHash.allDocs().length];
         initializeMatrix(exactJC,minHash.allDocs().length,minHash.allDocs().length,-1);

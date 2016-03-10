@@ -3,6 +3,7 @@ package minhash;
 import objects.Permutation;
 import utilities.FileUtil;
 
+import java.io.File;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
 import java.security.SecureRandom;
@@ -65,8 +66,8 @@ public class MinHash {
         String[] filepaths = FileUtil.getFiles(folder).toArray(new String[1]);
         String[] filenames = new String[filepaths.length];
         for(int i=0;i<filepaths.length;i++){
-            String[] tokens = filepaths[i].split("/");
-            filenames[i] = tokens[tokens.length-1];
+            File file = new File(filepaths[i]);
+            filenames[i] = file.getName();
             LOGGER.log(Level.FINE, filenames[i]);
         }
 
@@ -81,6 +82,7 @@ public class MinHash {
         LOGGER.log(Level.INFO, this.termList.size()+"");
         createTermDocumentMatrix();
         generatePermutations();
+        LOGGER.log(Level.INFO,"Generated Permutations!");
         //compute minhashsignature
         for(int i=0;i<this.numPermutations; i++){
             Permutation currentPerm = permutations[i];
@@ -198,10 +200,10 @@ public class MinHash {
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
         String [] filenames = allDocs();
+        LOGGER.log(Level.INFO,filenames.length+" files read!");
         Set<String> localTermSet = new TreeSet<>();
         for(String file: filenames){
-            String filepath = folder.endsWith("/") ? (folder + file) : (folder + "/" + file);
-            Set<String> fileTerms = FileUtil.getFileTerms(filepath);
+            Set<String> fileTerms = FileUtil.getFileTerms(file);
             this.termMap.put(file, fileTerms);
             localTermSet.addAll(fileTerms);
         }
