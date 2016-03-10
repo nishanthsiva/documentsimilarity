@@ -14,7 +14,7 @@ public class StringUtil {
         final String METHOD_NAME = "removePuncutation";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
-        input = input.replaceAll("[^A-Za-z0-9]"," ");
+        input = input.replaceAll(":|;|\\.|,|'","");
 
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
         return input;
