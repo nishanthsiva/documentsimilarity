@@ -37,7 +37,6 @@ public class MinHashSpeed {
     public static double[][] getApproxJCForAllPairs(MinHash minHash){
         double[][] approxJC = new double[minHash.allDocs().length][minHash.allDocs().length];
         initializeMatrix(approxJC,minHash.allDocs().length,minHash.allDocs().length,-1);
-        minHash.computeMinHashSig();
 
         String[] allDocs = minHash.allDocs();
         for(int i=0;i<minHash.allDocs().length;i++){
@@ -56,10 +55,9 @@ public class MinHashSpeed {
     }
 
     public static void main(String args[]){
-        MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/pa2/",400);
+        MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/space/",800);
 
         double[][] exactJC = new double[minHash.allDocs().length][minHash.allDocs().length];
-        initializeMatrix(exactJC,minHash.allDocs().length,minHash.allDocs().length,-1);
 
         long startTime = System.currentTimeMillis();
         exactJC = getExactJCForAllPairs(minHash);
@@ -67,7 +65,7 @@ public class MinHashSpeed {
         System.out.println("Time Taken to Compute Exact Jaccard Similarity = "+(timeTaken/1000)+" seconds");
 
         double[][] approxJC = new double[minHash.allDocs().length][minHash.allDocs().length];
-        initializeMatrix(approxJC,minHash.allDocs().length,minHash.allDocs().length,-1);
+        minHash.computeMinHashSig();
 
         startTime = System.currentTimeMillis();
         approxJC = getApproxJCForAllPairs(minHash);

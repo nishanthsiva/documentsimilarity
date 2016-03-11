@@ -24,6 +24,7 @@ public class MinHash {
     private int[][] termDocumentMatrix;
     private int[][] minHashMatrix;
     private HashMap<Integer,String> termListMap;
+    private HashMap<String,Integer> termListMapRev;
     private HashMap<String, Set<String>> termMap;
     private HashMap<String, Set<String>> termDocumentMap;
     private int prime;
@@ -52,6 +53,7 @@ public class MinHash {
         this.filenames = getAllFileNames();
         this.termMap = new HashMap<>();
         this.termListMap = new HashMap<>();
+        this.termListMapRev = new HashMap<>();
         this.termDocumentMap = new HashMap<>();
         this.permutations = new Permutation[numPermutations];
         this.minHashMatrix = new int[numPermutations][filenames.length];
@@ -82,18 +84,28 @@ public class MinHash {
         final String METHOD_NAME = "computeMinHashSig";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
-        createTermDocumentMatrix();
-        LOGGER.log(Level.INFO,"Created Term Document Matrix!");
         generatePermutations();
         LOGGER.log(Level.INFO,"Generated Permutations!");
         //compute minhashsignature
-        for(int i=0;i<this.numPermutations; i++){
+        LOGGER.log(Level.INFO,this.termDocumentMap.size()+" map terms");
+        LOGGER.log(Level.INFO,this.termMap.size()+" map files");
+        computeMinHashMatrix();
+        LOGGER.exiting(CLASS_NAME, METHOD_NAME);
+    }
+
+    private void computeMinHashMatrix(){
+        final String METHOD_NAME = "computeMinHashMatrix";
+        LOGGER.entering(CLASS_NAME, METHOD_NAME);
+
+        for(int i=0;i<this.numPermutations; i++) {
             Permutation currentPerm = permutations[i];
-            for(int j=0;j<this.filenames.length;j++){
-                minHashMatrix[i][j] = getMinimumTerm(getTermDocumentColumn(j),currentPerm).hashCode();
+            for (int j = 0; j < this.filenames.length; j++) {
+                this.minHashMatrix[i][j] = getMinimumTerm(filenames[j],currentPerm);
             }
         }
-        LOGGER.exiting(CLASS_NAME, METHOD_NAME);
+
+        LOGGER.exiting(CLASS_NAME,METHOD_NAME);
+
     }
 
     private int getFileIndex(String filename){
@@ -129,19 +141,6 @@ public class MinHash {
         return docMinHashSig;
     }
 
-    private int[] getTermDocumentColumn(int columnNumber){
-        final String METHOD_NAME = "getTermDocumentColumn";
-        LOGGER.entering(CLASS_NAME, METHOD_NAME);
-
-        LOGGER.log(Level.FINER,"Col Num - "+columnNumber);
-        int[] termDocColumn = new int[this.numTerms];
-        for(int i=0;i<numTerms;i++){
-            termDocColumn[i] = termDocumentMatrix[i][columnNumber];
-        }
-
-        LOGGER.exiting(CLASS_NAME, METHOD_NAME);
-        return termDocColumn;
-    }
 
     private int getNextPrime(int startNumber){
         final String METHOD_NAME ="getNextPrime";
@@ -180,21 +179,36 @@ public class MinHash {
         }
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
     }
-    private String getMinimumTerm(int[] termDocument, Permutation p){
+    private int getMinimumTerm(String filename, Permutation p){
         final String METHOD_NAME = "getMinimumTerm";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
-        TreeSet<String> occurringTerms = new TreeSet<>();
-        for(int i=0;i<termDocument.length;i++){
-            if(termDocument[i] == 1){
-                int index = (((p.getA()+i)+p.getB())%this.prime)%this.numTerms;
-
-                occurringTerms.add(this.termListMap.get(index));
+        Set<String> fileTermSet = this.termMap.get(filename);
+        Integer minHashCode = null;
+        Iterator<String> fileTermSetIteraor = fileTermSet.iterator();
+        while(fileTermSetIteraor.hasNext()){
+            String searchTerm = fileTermSetIteraor.next();
+            int index = this.termListMapRev.get(searchTerm);
+            index = ((p.getA()*index)+p.getB());
+            index %=this.prime;
+            if(index >= this.numTerms)
+                index %=this.numTerms;
+            int val = this.termListMap.get(index).hashCode();
+            if(minHashCode == null){
+                minHashCode = new Integer(val);
+            }else{
+               if(val < minHashCode){
+                   minHashCode = val;
+               }
             }
         }
 
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
-        return occurringTerms.first();
+        if(minHashCode == null){
+            minHashCode = new Integer(0);
+        }
+        LOGGER.log(Level.FINER,minHashCode+" minhashcode");
+       return minHashCode.intValue();
     }
 
     private void createTermSet(){
@@ -221,47 +235,20 @@ public class MinHash {
         Iterator<String> termSetIterator = this.termDocumentMap.keySet().iterator();
         int i=0;
         while(termSetIterator.hasNext()){
-            this.termListMap.put(i,termSetIterator.next());
+            String temp = termSetIterator.next();
+            this.termListMap.put(i,temp);
+            this.termListMapRev.put(temp,i);
             i++;
         }
+        for(Integer x : this.termListMap.keySet()){
+            if(!this.termListMapRev.containsKey(this.termListMap.get(x))){
+                LOGGER.log(Level.INFO,"Mismatch!!");
+                break;
+            }
+        }
         this.numTerms = i;
-        LOGGER.log(Level.INFO, this.numTerms+" terms found!");
+        LOGGER.log(Level.INFO, this.termListMapRev.size()+" terms found!");
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
-    }
-
-    private void createTermDocumentMatrix(){
-        final String METHOD_NAME = "createTermDocumentMatrix";
-        LOGGER.entering(CLASS_NAME, METHOD_NAME);
-
-        this.termDocumentMatrix = new int[this.numTerms][filenames.length];
-        for(int i = 0; i< numTerms; i++){
-            String term = this.termListMap.get(i);
-            for(int j=0;j<filenames.length;j++){
-                String filename = filenames[j];
-                if(this.termMap.get(filename).contains(term)){
-                    this.termDocumentMatrix[i][j] = 1;
-                }else{
-                    this.termDocumentMatrix[i][j] = 0;
-                }
-            }
-        }
-        LOGGER.exiting(CLASS_NAME, METHOD_NAME);
-    }
-
-    private Set<String> getTermIntersection(Set<String> termSet1, Set<String> termSet2){
-        final String METHOD_NAME = "getTermIntersection";
-        LOGGER.entering(CLASS_NAME, METHOD_NAME);
-
-        Set<String> intersectionSet = new TreeSet<>();
-        Iterator<String> file1TermIterator = termSet1.iterator();
-        while(file1TermIterator.hasNext()){
-            String term = file1TermIterator.next();
-            if(termSet2.contains(term)){
-                intersectionSet.add(term);
-            }
-        }
-        LOGGER.exiting(CLASS_NAME, METHOD_NAME);
-        return intersectionSet;
     }
 
     public double exactJaccard(String file1, String file2){
@@ -272,8 +259,9 @@ public class MinHash {
         Set<String> file1Terms = this.termMap.get(file1);
         Set<String> file2Terms = this.termMap.get(file2);
 
-        Set<String> termIntersection = getTermIntersection(file1Terms, file2Terms);
-
+        Set<String> termIntersection = new TreeSet<>();
+        termIntersection.addAll(file1Terms);
+        termIntersection.retainAll(file2Terms);
 
         Set<String> unionSet = new TreeSet<>();
         unionSet.addAll(file1Terms);
@@ -304,8 +292,9 @@ public class MinHash {
     }
 
     public static void main(String args[]){
+
         long timeTaken = System.currentTimeMillis();
-        MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/space1test/",400);
+        MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/space/",400);
         minHash.computeMinHashSig();
         timeTaken = System.currentTimeMillis() - timeTaken;
         System.out.println("time taken for minHAshMatrix = "+(timeTaken/1000));
