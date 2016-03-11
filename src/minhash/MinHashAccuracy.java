@@ -32,7 +32,7 @@ public class MinHashAccuracy {
 
                     }
                 }
-                System.out.println(accuracyArray[resultIndex]);
+                System.out.println(accuracyArray[resultIndex]/2);
                 resultIndex++;
             }
         }

@@ -23,10 +23,12 @@ public class MinHash {
     private String[] filenames;
     private int[][] termDocumentMatrix;
     private int[][] minHashMatrix;
-    private List<String> termList;
+    private HashMap<Integer,String> termListMap;
     private HashMap<String, Set<String>> termMap;
+    private HashMap<String, Set<String>> termDocumentMap;
     private int prime;
     private Permutation[] permutations;
+    private int numTerms;
 
     public int getNumPermutations() {
         return numPermutations;
@@ -37,7 +39,7 @@ public class MinHash {
     }
 
     public int numTerms(){
-        return this.termList.size();
+        return this.numTerms;
     }
 
     public int[][] minHashMatrix(){
@@ -49,7 +51,8 @@ public class MinHash {
         this.numPermutations = numPermutations;
         this.filenames = getAllFileNames();
         this.termMap = new HashMap<>();
-        this.termList = new ArrayList<>();
+        this.termListMap = new HashMap<>();
+        this.termDocumentMap = new HashMap<>();
         this.permutations = new Permutation[numPermutations];
         this.minHashMatrix = new int[numPermutations][filenames.length];
         createTermSet();
@@ -79,8 +82,8 @@ public class MinHash {
         final String METHOD_NAME = "computeMinHashSig";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
-        LOGGER.log(Level.INFO, this.termList.size()+"");
         createTermDocumentMatrix();
+        LOGGER.log(Level.INFO,"Created Term Document Matrix!");
         generatePermutations();
         LOGGER.log(Level.INFO,"Generated Permutations!");
         //compute minhashsignature
@@ -131,8 +134,8 @@ public class MinHash {
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
         LOGGER.log(Level.FINER,"Col Num - "+columnNumber);
-        int[] termDocColumn = new int[this.termList.size()];
-        for(int i=0;i<termList.size();i++){
+        int[] termDocColumn = new int[this.numTerms];
+        for(int i=0;i<numTerms;i++){
             termDocColumn[i] = termDocumentMatrix[i][columnNumber];
         }
 
@@ -145,7 +148,7 @@ public class MinHash {
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
         SecureRandom random = new SecureRandom();
-        BigInteger nextPrime = new BigInteger(this.termList.size()+"");
+        BigInteger nextPrime = new BigInteger(this.numTerms+"");
         nextPrime = nextPrime.nextProbablePrime();
 
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
@@ -157,7 +160,7 @@ public class MinHash {
         final String METHOD_NAME = "generatePermutations";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
         //TODO Verify this randomization
-        this.prime = getNextPrime(termList.size());
+        this.prime = getNextPrime(this.numTerms);
         LOGGER.log(Level.INFO,"Prime found at "+this.prime);
         Set<Integer> aSet = new TreeSet<>();
         Set<Integer> bSet = new TreeSet<>();
@@ -184,9 +187,9 @@ public class MinHash {
         TreeSet<String> occurringTerms = new TreeSet<>();
         for(int i=0;i<termDocument.length;i++){
             if(termDocument[i] == 1){
-                int index = (((p.getA()+i)+p.getB())%this.prime)%this.termList.size();
+                int index = (((p.getA()+i)+p.getB())%this.prime)%this.numTerms;
 
-                occurringTerms.add(this.termList.get(index));
+                occurringTerms.add(this.termListMap.get(index));
             }
         }
 
@@ -200,14 +203,29 @@ public class MinHash {
 
         String [] filenames = allDocs();
         LOGGER.log(Level.INFO,filenames.length+" files read!");
-        Set<String> localTermSet = new TreeSet<>();
         for(String file: filenames){
             Set<String> fileTerms = FileUtil.getFileTerms(this.folder+file);
             this.termMap.put(file, fileTerms);
-            localTermSet.addAll(fileTerms);
+            Iterator<String> fileTermIterator = fileTerms.iterator();
+            while(fileTermIterator.hasNext()){
+                String term = fileTermIterator.next();
+                if(this.termDocumentMap.containsKey(term)){
+                    this.termDocumentMap.get(term).add(file);
+                }else{
+                    Set<String> fileSet = new TreeSet<>();
+                    fileSet.add(file);
+                    this.termDocumentMap.put(term,fileSet);
+                }
+            }
         }
-        this.termList.addAll(localTermSet);
-        LOGGER.log(Level.INFO, this.termList.size()+" terms found!");
+        Iterator<String> termSetIterator = this.termDocumentMap.keySet().iterator();
+        int i=0;
+        while(termSetIterator.hasNext()){
+            this.termListMap.put(i,termSetIterator.next());
+            i++;
+        }
+        this.numTerms = i;
+        LOGGER.log(Level.INFO, this.numTerms+" terms found!");
         LOGGER.exiting(CLASS_NAME, METHOD_NAME);
     }
 
@@ -215,9 +233,9 @@ public class MinHash {
         final String METHOD_NAME = "createTermDocumentMatrix";
         LOGGER.entering(CLASS_NAME, METHOD_NAME);
 
-        this.termDocumentMatrix = new int[termList.size()][filenames.length];
-        for(int i = 0; i< termList.size(); i++){
-            String term = this.termList.get(i);
+        this.termDocumentMatrix = new int[this.numTerms][filenames.length];
+        for(int i = 0; i< numTerms; i++){
+            String term = this.termListMap.get(i);
             for(int j=0;j<filenames.length;j++){
                 String filename = filenames[j];
                 if(this.termMap.get(filename).contains(term)){
@@ -286,34 +304,11 @@ public class MinHash {
     }
 
     public static void main(String args[]){
-        MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/space/",400);
-        double[][] exactJC = new double[4][4];
-        double[][] approxJC = new double[4][4];
-
-        for(int i=0;i<4;i++){
-            for(int j=0;j<4;j++){
-                if(exactJC[i][j] == 0){
-                    exactJC[i][j] = minHash.exactJaccard("space-"+i+".txt","space-"+j+".txt");
-                }
-                if(approxJC[i][j] == 0){
-                    approxJC[i][j] = minHash.approximateJaccard("space-"+i+".txt","space-"+j+".txt");
-                }
-            }
-
-        }
-        for(int i=0;i<4;i++) {
-            for (int j = 0; j <4; j++) {
-                System.out.print(String.format("%.2f",(float)exactJC[i][j])+"\t\t\t");
-            }
-            System.out.println();
-        }
-        System.out.println("\n");
-        for(int i=0;i<4;i++) {
-            for (int j = 0; j <4; j++) {
-                System.out.print(String.format("%.2f",(float)approxJC[i][j])+"\t\t\t");
-            }
-            System.out.println();
-        }
+        long timeTaken = System.currentTimeMillis();
+        MinHash minHash = new MinHash("/Users/nishanthsivakumar/Documents/ISU-CS/COMS-535/space1test/",400);
+        minHash.computeMinHashSig();
+        timeTaken = System.currentTimeMillis() - timeTaken;
+        System.out.println("time taken for minHAshMatrix = "+(timeTaken/1000));
 
 
     }
