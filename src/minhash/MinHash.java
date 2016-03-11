@@ -193,7 +193,12 @@ public class MinHash {
             index %=this.prime;
             if(index >= this.numTerms)
                 index %=this.numTerms;
-            int val = this.termListMap.get(index).hashCode();
+            int val;
+            if(this.termListMap.get(index) == null){
+                val = 0;
+            }else{
+                val = this.termListMap.get(index).hashCode();
+            }
             if(minHashCode == null){
                 minHashCode = new Integer(val);
             }else{
